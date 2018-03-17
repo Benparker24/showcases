@@ -1,0 +1,14 @@
+@import models.Model._
+
+@(showcases: Seq[Showcase])
+
+<!DOCTYPE html>
+
+<html>
+    @showcases.map{showcase =>
+    <p>
+        <!--@showcase.name <href>@routes.Application.downloadShowcase(showcase.name)</href>-->
+        <a href="@routes.Application.downloadShowcase(showcase.name)">@showcase.name </a>
+
+    </p>}
+</html>

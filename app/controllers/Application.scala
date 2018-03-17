@@ -1,35 +1,36 @@
 package controllers
 
-import play.api._
+import java.io.File
+
+import akka.stream.scaladsl.{Source, StreamConverters}
+import akka.util.ByteString
+import models.Model.Showcase
+import play.api.i18n.I18nSupport
 import play.api.mvc._
-import play.api.cache.Cache
-import play.api.Play.current
 
-import play.api.db._
-
-object Application extends Controller {
+class Application()(cc: ControllerComponents) extends AbstractController(cc) with I18nSupport{
+  import AWS.s3h
 
   def index = Action {
     Ok(views.html.index(null))
   }
+  StreamConverters
 
-  def db = Action {
-    var out = ""
-    val conn = DB.getConnection()
-    try {
-      val stmt = conn.createStatement
+  def displayShowcases = Action {
 
-      stmt.executeUpdate("CREATE TABLE IF NOT EXISTS ticks (tick timestamp)")
-      stmt.executeUpdate("INSERT INTO ticks VALUES (now())")
+    Ok(
+      views.html.showcases(
+        AWS.objectsInBucket
+          .filter(_.getKey.contains("mp3"))
+          .map(summary => Showcase(summary.getKey)))
+    )
+  }
 
-      val rs = stmt.executeQuery("SELECT tick FROM ticks")
-
-      while (rs.next) {
-        out += "Read from DB: " + rs.getTimestamp("tick") + "\n"
-      }
-    } finally {
-      conn.close()
-    }
-    Ok(out)
+  def downloadShowcase(showcaseId: String) = Action {
+    val x = AWS.showcaseBucket.get("Ben/Ben Parker - Showcase 051 - (Everything) When I play Live.mp3").get.content
+    val dataContent: Source[ByteString, _] = StreamConverters.fromInputStream(() => x)
+    Ok.chunked(dataContent)
   }
 }
+
+case class ShowcaseId(id: String)
